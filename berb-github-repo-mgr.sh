@@ -1,8 +1,8 @@
 #!/bin/bash
 
 TOOL_NOM='berb-github-repo-mgr'
-TOOL_VERSIO='0.0.1-1'
-TOOL_BRANCA='development'
+TOOL_VERSIO='0.0.2'
+TOOL_BRANCA='devel'
 
 # Not used yet by this script:
 # VERSIO_SCRIPTS_SHARED_FUNCS="0.2.1"
@@ -39,43 +39,37 @@ TOOL_BRANCA='development'
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-################
-## Changelog: ##
-################
-  # v_0.0.1-1
-    # Starting version
-  # v_0.0.1
-    # Starting version
 
-START_DIR=$(pwd)
-REPO_NAME=$(echo $START_DIR | awk -F'/' '{print $NF}')
-REPO_ACCOUNT='berbascum'
-DATA_HORA_JUNT=$(date +%y%m%d%H%M%S)
-
-fn_precheck_repo_nom() {
-	if [ "$REPO_NAME" == "kernel-xiaomi-lavender-4.4.192" ]; then
-		REPO_NAME='kernel-xiaomi-lavender'
-		REPO_ACCOUNT='droidian-lavender'
-	elif [ "$REPO_NAME" == "linux-android-fxtec-pro1" ]; then
-		REPO_ACCOUNT='droidian-devices'
-	fi
-	echo "" && echo "REPO_NAME = $REPO_NAME"
-	echo "" && echo "REPO_ACCOUNT = $REPO_ACCOUNT"
-	echo "" && read -p "Continuar?"
-	echo ""
+fn_get_repo_info() {
+	START_DIR=$(pwd)
+	DATA_HORA_JUNT=$(date +%y%m%d%H%M%S)
+	ORG_NAME=$(echo $START_DIR | awk -F'/' '{print $(NF-1)}')
+	PROJECT_NAME=$(echo $START_DIR | awk -F'/' '{print $NF}')
+	CURRENT_BRANCH=$(git branch --show-current)
+#	echo && echo -p "Organization detected: \"$ORG_NAME"\"
+#	echo && echo -p "Project detected: \"$PROJECT_NAME\""
+#	echo && echo "Branch detected: \"$CURRENT_BRANCH\""
 }
 
-fn_create_repo() {
+fn_msg_branch_confirm() {
+	echo && read -p "$MSG1 branch \"$CURRENT_BRANCH\" $MSG2 $MSG3 \"$ORG_NAME/$PROJECT_NAME\"? [ yes | <any_word> ]: " ANSWER
+	if [ "$ANSWER" != 'y' ]; then
+		echo && echo "Aborting as your choice..."
+		exit 2
+	fi
+}
+
+fn_create_repo() {  # TODO
 	git init
 	fn_pull $@
 }
 
-fn_create_branch() {
+fn_create_branch() { # TODO
 	fn_check_param_2_branch $@
 	git checkout -b "$BRANCA"
 }
 
-fn_tag_ver_last_commit() {
+fn_tag_ver_last_commit() { # NEED REVISION
 	COMMIT_ID_LAST=$(git log --oneline | head -n 1 | awk '{print $1}')
 	GIT_VER_SUFIX="+git"$DATA_HORA_JUNT"."$COMMIT_ID_LAST".halium.9.0"
 	echo && echo 'A version number is required!'
@@ -87,33 +81,29 @@ fn_tag_ver_last_commit() {
 	echo && read -p "Versió = $VERSION_GIT"
 
 	git tag -a $VERSION_GIT -m "Release creation: $VERSION_GIT"
-	git push --tags git@github.com:$REPO_ACCOUNT/$REPO_NAME
+	git push --tags git@github.com:$ORG_NAME/$PROJECT_NAME
 }
 
-fn_commit-all() {
-	git checkout $BRANCA
+fn_commit_all() {
+	MSG1='COMMIT' MSG2='to' MSG3='git local repo' fn_msg_branch_confirm
 	git add --all
-	commit -a -m 'Updated files'
-	git push git@github.com:berbascum/$REPO_NAME
+	vim /tmp/tmp.txt
+	git commit -m "$(cat /tmp/tmp.txt)"
+	rm /tmp/tmp.txt
 }
 
 fn_pull() {
-	CURRENT_BRANCH=$(git branch --show-current)
-	echo && read -p "Baixar branca $CURRENT_BRANCH?"
-	git pull git@github.com:$REPO_ACCOUNT/$REPO_NAME $CURRENT_BRANCH
-	#git pull git@github.com:berbascum/$REPO_NAME
-	#git pull git@github.com:droidian-lavender/kernel-xiaomi-lavender
+	MSG1='PULL' MSG2='from' MSG3='github remote repo' fn_msg_branch_confirm
+	git pull git@github.com:$ORG_NAME/$PROJECT_NAME $CURRENT_BRANCH
 
 }
 
 fn_push() {
-	CURRENT_BRANCH=$(git branch --show-current)
-	echo && read -p "Pujar branca $CURRENT_BRANCH?"
-	git push git@github.com:$REPO_ACCOUNT/$REPO_NAME $CURRENT_BRANCH
-	#git push git@github.com:berbascum/$REPO_NAME
+	MSG1='PUSH' MSG2='to' MSG3='github remote repo' fn_msg_branch_confirm
+	git push git@github.com:$ORG_NAME/$PROJECT_NAME $CURRENT_BRANCH
 }
 
-fn_check_param_2_branch() {
+fn_check_param_2_branch() { # NEED REVISION
 	echo "Params = $@"
 	if [ "$2" == "" ]; then
 		echo "" && echo "Cal nom de branca com a param 2"
@@ -127,14 +117,13 @@ fn_check_param_2_branch() {
 ##################
 ## inici script ##
 ##################
-fn_precheck_repo_nom
-
+fn_get_repo_info
 if [ "$1" == "create-repo" ]; then
 	fn_create_repo $@
 elif [ "$1" == "create-branch" ]; then
 	fn_create_branch $@
 elif [ "$1" == "commit-all" ]; then
-	fn_commit-all $@
+	fn_commit_all $@
 elif [ "$1" == "pull" ]; then
 	fn_pull $@
 elif [ "$1" == "push" ]; then
