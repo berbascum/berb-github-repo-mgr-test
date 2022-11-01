@@ -1,7 +1,7 @@
 #!/bin/bash
 
 TOOL_NOM='berb-github-repo-mgr'
-TOOL_VERSIO='0.0.2'
+TOOL_VERSIO='0.0.3'
 TOOL_BRANCA='devel'
 
 # Not used yet by this script:
@@ -39,6 +39,27 @@ TOOL_BRANCA='devel'
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+################################
+## FUNCIONS D'OPCIONS GLOBALS ##
+################################
+
+##################################
+## FUNCIONS ESPECÍFIQUES SCRIPT ##
+##################################
+fn_check_requirements() {
+	if [ ! -e ".git" ]; then
+		echo && echo "ERROR: This is not a git repo!"
+		echo && echo "Aborting!!!"
+		echo
+		exit 1
+	fi
+	if [ ! -f "last_changes" ]; then
+		echo && echo "ERROR: This is not a last_changes file in current dir!"
+		echo && echo "Aborting!!!"
+		echo
+		exit 1
+	fi
+}
 
 fn_get_repo_info() {
 	START_DIR=$(pwd)
@@ -52,7 +73,7 @@ fn_get_repo_info() {
 }
 
 fn_msg_branch_confirm() {
-	echo && read -p "$MSG1 branch \"$CURRENT_BRANCH\" $MSG2 $MSG3 \"$ORG_NAME/$PROJECT_NAME\"? [ yes | <any_word> ]: " ANSWER
+	echo && read -p "$MSG1 branch \"$CURRENT_BRANCH\" $MSG2 $MSG3 \"$ORG_NAME/$PROJECT_NAME\"? [ y | <any_word> ]: " ANSWER
 	if [ "$ANSWER" != 'y' ]; then
 		echo && echo "Aborting as your choice..."
 		exit 2
@@ -69,27 +90,27 @@ fn_create_branch() { # TODO
 	git checkout -b "$BRANCA"
 }
 
-fn_tag_ver_last_commit() { # NEED REVISION
+fn_tag_ver_last_commit() { 
 	COMMIT_ID_LAST=$(git log --oneline | head -n 1 | awk '{print $1}')
-	GIT_VER_SUFIX="+git"$DATA_HORA_JUNT"."$COMMIT_ID_LAST".halium.9.0"
+	#GIT_VER_SUFIX="+git"$DATA_HORA_JUNT"."$COMMIT_ID_LAST".halium.9.0"
 	echo && echo 'A version number is required!'
 	echo && echo 'Samples:'
 	echo '- Kernel: 4.4.160-1'
 	echo '- Script; 0.0.1 | 0.0.1-1'
-	echo && read -p "Type a version number: " VERSION_LOCAL
-	VERSION_GIT="$VERSION_LOCAL""$GIT_VER_SUFIX"
-	echo && read -p "Versió = $VERSION_GIT"
+	echo '- Deb package; debian/<suite_ex_bookworm>/<num>'
+	echo && read -p "Type a version number: " VERSION_TAG
+	echo && read -p "Versió = $VERSION_TAG"
+	echo "git tag -a $VERSION_TAG -m "Release creation: $VERSION_TAG""
+	exit
 
-	git tag -a $VERSION_GIT -m "Release creation: $VERSION_GIT"
+	git tag -a $VERSION_TAG -m "Release creation: $VERSION_TAG"
 	git push --tags git@github.com:$ORG_NAME/$PROJECT_NAME
 }
 
 fn_commit_all() {
 	MSG1='COMMIT' MSG2='to' MSG3='git local repo' fn_msg_branch_confirm
 	git add --all
-	vim /tmp/tmp.txt
-	git commit -m "$(cat /tmp/tmp.txt)"
-	rm /tmp/tmp.txt
+	git commit -m "$(cat last_changes)"
 }
 
 fn_pull() {
@@ -117,7 +138,9 @@ fn_check_param_2_branch() { # NEED REVISION
 ##################
 ## inici script ##
 ##################
+fn_check_requirements
 fn_get_repo_info
+
 if [ "$1" == "create-repo" ]; then
 	fn_create_repo $@
 elif [ "$1" == "create-branch" ]; then
@@ -136,7 +159,7 @@ else
 	echo "- create-repo"
 	echo "- commit-all"
 	echo "- create-branch"
-	echo "- tag-version"
+	echo "- tag-ver-last-commit"
 	echo "- pull"
 	echo "- push"
 fi

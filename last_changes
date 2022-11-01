@@ -1,0 +1,7 @@
+Release version 0.0.3
+
+  Optimize(code): Code structuration.
+  Add(requirement): The script now requires the last_changes file wich will be used to commit latest changes.
+  New(function): fn_check_requirements: Requires a .git dir and a last_changes file in current dir.
+  Improve(function): fn_commit_all: Replace get commit notes opening vim to reading last_changes file.
+  Fix(typo): Some typo errors in echo prints.
